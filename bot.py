@@ -3,6 +3,9 @@ import telegram
 import requests
 import openai_secret_manager
 
+BOT_TOKEN = os.environ.get("BOT_TOKEN")
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
+
 # Подключаемся к API Telegram с помощью токена бота
 bot = telegram.Bot(token=os.environ['BOT_TOKEN'])
 
