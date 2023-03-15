@@ -3,14 +3,14 @@ from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 import requests
 
 # Замените "YOUR_BOT_TOKEN" на токен вашего бота
-bot = telegram.Bot(token='6193534640:AAF1nP48aEu-jckNa6UlpFhkQQl-0XU3UGA')
+bot = telegram.Bot(token='BOT_TOKEN')
 
 # Функция для отправки запроса к API ChatGPT и получения ответа
 def get_response(message):
     # Замените "YOUR_API_KEY" на ваш API ключ, который вы получили на openai.com
     response = requests.post("https://api.openai.com/v1/engines/davinci-codex/completions",
                              headers={
-                                 "Authorization": f"Bearer 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",
+                                 "Authorization": f"Bearer OPENAI_API_KEY",
                                  "Content-Type": "application/json"
                              },
                              json={
