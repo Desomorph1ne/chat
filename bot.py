@@ -1,54 +1,35 @@
+import os
 import telegram
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 import requests
+import openai_secret_manager
 
-# Замените "YOUR_BOT_TOKEN" на токен вашего бота
-bot = telegram.Bot(token='BOT_TOKEN')
+# Подключаемся к API Telegram с помощью токена бота
+bot = telegram.Bot(token=os.environ['BOT_TOKEN'])
 
-# Функция для отправки запроса к API ChatGPT и получения ответа
-def get_response(message):
-    # Замените "YOUR_API_KEY" на ваш API ключ, который вы получили на openai.com
-    response = requests.post("https://api.openai.com/v1/engines/davinci-codex/completions",
-                             headers={
-                                 "Authorization": f"Bearer OPENAI_API_KEY",
-                                 "Content-Type": "application/json"
-                             },
-                             json={
-                                 "prompt": message,
-                                 "max_tokens": 50,
-                                 "temperature": 0.7,
-                                 "top_p": 1,
-                                 "frequency_penalty": 0,
-                                 "presence_penalty": 0
-                             })
+# Получаем ключ API от OpenAI
+openai_secrets = openai_secret_manager.get_secret("openai")
 
-    return response.json()['choices'][0]['text']
-
-# Обработчик команд
-def start(update, context):
-    update.message.reply_text('Привет! Я - ваш личный бот, который готов ответить на ваши вопросы!')
-
-def help(update, context):
-    update.message.reply_text('Просто отправьте мне сообщение, и я постараюсь ответить на ваш вопрос.')
-
-# Обработчик сообщений от пользователя
-def handle_message(update, context):
+# Функция, которая отвечает на сообщения пользователя
+def respond(update, context):
     message = update.message.text
+    headers = {
+        'Content-Type': 'application/json',
+        'Authorization': f"Bearer {openai_secrets['api_key']}"
+    }
+    data = {
+        'prompt': message,
+        'temperature': 0.5,
+        'max_tokens': 100,
+        'top_p': 1,
+        'frequency_penalty': 0,
+        'presence_penalty': 0
+    }
+    response = requests.post('https://api.openai.com/v1/engines/davinci-codex/completions', headers=headers, json=data)
+    completion = response.json()['choices'][0]['text']
+    bot.send_message(chat_id=update.message.chat_id, text=completion)
 
-    # Отправляем сообщение пользователя на обработку в API ChatGPT
-    response = get_response(message)
-
-    # Отправляем ответ пользователю в Telegram
-    update.message.reply_text(response)
-
-# Настройка обработчиков для бота
-updater = Updater(token='YOUR_BOT_TOKEN', use_context=True)
-dispatcher = updater.dispatcher
-
-# Назначение обработчиков для команд и сообщений
-dispatcher.add_handler(CommandHandler('start', start))
-dispatcher.add_handler(CommandHandler('help', help))
-dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_message))
-
-# Запуск бота
+# Запускаем бота
+bot = telegram.Bot(token=os.environ['BOT_TOKEN'])
+updater = telegram.ext.Updater(token=os.environ['BOT_TOKEN'], use_context=True)
+updater.dispatcher.add_handler(telegram.ext.MessageHandler(telegram.ext.Filters.text & ~telegram.ext.Filters.command, respond))
 updater.start_polling()
