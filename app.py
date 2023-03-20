@@ -4,8 +4,6 @@ from telegram import Update
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
 
 # Замените на ваш API-ключ OpenAI и API-ключ Telegram
-OPENAI_API_KEY = "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"
-TELEGRAM_API_KEY = "6193534640:AAEVVwpLICPxFt6Pkupzkg-DAZPVXdnLuP4"
 
 # Настройка OpenAI API
 openai.api_key = OPENAI_API_KEY
