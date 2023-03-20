@@ -1,48 +1,60 @@
-import os
-import telegram
-from telegram.ext import CommandHandler, MessageHandler, Filters, Updater
+import logging
 import openai
+from telegram import Update
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
 
-# Получите токен вашего бота в Telegram и установите его как переменную окружения
-BOT_TOKEN = os.environ.get('BOT_TOKEN')
+# Замените на ваш API-ключ OpenAI и API-ключ Telegram
+OPENAI_API_KEY = "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"
+TELEGRAM_API_KEY = "6193534640:AAEVVwpLICPxFt6Pkupzkg-DAZPVXdnLuP4"
 
-# Получите ваш API ключ для OpenAI и установите его как переменную окружения
-OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
-
-# Настройка API OpenAI
+# Настройка OpenAI API
 openai.api_key = OPENAI_API_KEY
 
-# Создайте экземпляр Telegram бота
-bot = telegram.Bot(token=BOT_TOKEN)
+# Настройка логирования
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.DEBUG
+)
+logger = logging.getLogger(__name__)
 
-# Обработчик команды /start
-def start(update, context):
-    context.bot.send_message(chat_id=update.effective_chat.id, text="Привет! Я готов отвечать на твои сообщения.")
+# Обработчик для команды /start
+def start(update: Update, context: CallbackContext):
+    update.message.reply_text('Привет! Я ваш бот на основе GPT-3.')
 
-# Обработчик текстовых сообщений
-def generate_response(update, context):
-    # Получите текст сообщения от пользователя
-    user_message = update.message.text
-    
-    # Вызовите API OpenAI для генерации ответа
+# Обработчик для текстовых сообщений
+def echo(update: Update, context: CallbackContext):
+    user_text = update.message.text
+    ai_response = generate_ai_response(user_text)
+    update.message.reply_text(ai_response)
+
+# Функция для генерации ответа с помощью GPT-3
+def generate_ai_response(prompt: str) -> str:
     response = openai.Completion.create(
-        engine="davinci", prompt=user_message, max_tokens=50
+        engine="text-davinci-003",
+        prompt=prompt,
+        max_tokens=3200,
+        n=1,
+        stop=None,
+        temperature=0.5,
     )
-    
-    # Получите ответ из API OpenAI и отправьте его пользователю
-    bot_response = response.choices[0].text.strip()
-    context.bot.send_message(chat_id=update.effective_chat.id, text=bot_response)
 
-# Создайте экземпляр Updater для вашего бота
-updater = Updater(token=BOT_TOKEN, use_context=True)
+    ai_response = response.choices[0].text.strip()
+    return ai_response
 
-# Добавьте обработчики команд и текстовых сообщений
-updater.dispatcher.add_handler(CommandHandler('start', start))
-updater.dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, generate_response))
+def main():
+    # Создайте объект Updater и передайте токен API
+    updater = Updater(TELEGRAM_API_KEY, use_context=True)
 
-# Запустите бота
-if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    updater.start_webhook(listen="0.0.0.0", port=port, url_path=BOT_TOKEN)
-    updater.bot.setWebhook("https://chatbot-telegram.herokuapp.com/" + BOT_TOKEN)
+    # Получите диспетчер для регистрации обработчиков
+    dp = updater.dispatcher
+
+    # Регистрация обработчиков
+    dp.add_handler(CommandHandler("start", start))
+    dp.add_handler(MessageHandler(Filters.text & ~Filters.command, echo))
+
+    # Запустите бот
+    updater.start_polling()
     updater.idle()
+
+if __name__ == '__main__':
+    main()
+
